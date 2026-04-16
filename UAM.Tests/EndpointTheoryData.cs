@@ -10,19 +10,16 @@ internal static class EndpointTheoryData
         yield return [5, 10, 5, 10];
     }
 
-    public static IEnumerable<object[]> StoryMissingEndpointCases()
+    public static IEnumerable<object[]> UserMissingEndpointCases()
     {
-        yield return ["publish"];
-        yield return ["unpublish"];
-        yield return ["views"];
-        yield return ["likes"];
-        yield return ["dislikes"];
-    }
-
-    public static IEnumerable<object[]> StoryUpdatePayloadCases()
-    {
-        yield return ["trim-fields"];
-        yield return ["duplicate-slug"];
+        yield return ["update"];
+        yield return ["patch"];
+        yield return ["delete"];
+        yield return ["restore"];
+        yield return ["activate"];
+        yield return ["deactivate"];
+        yield return ["get-preferences"];
+        yield return ["put-preferences"];
     }
 
     public static IEnumerable<object[]> DeleteRestoreSequenceCases()

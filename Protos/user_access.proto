@@ -1,0 +1,185 @@
+syntax = "proto3";
+
+option csharp_namespace = "UAM.Grpc.Users.V1";
+
+package uam.users.v1;
+
+service UserAccess {
+  rpc GetUser (GetUserRequest) returns (GetUserResponse);
+  rpc BatchGetUsers (BatchGetUsersRequest) returns (BatchGetUsersResponse);
+  rpc CreateUser (CreateUserRequest) returns (CreateUserResponse);
+  rpc UpdateUser (UpdateUserRequest) returns (UpdateUserResponse);
+  rpc PatchUser (PatchUserRequest) returns (PatchUserResponse);
+  rpc DeleteUser (DeleteUserRequest) returns (DeleteUserResponse);
+  rpc RestoreUser (RestoreUserRequest) returns (RestoreUserResponse);
+  rpc SetUserStatus (SetUserStatusRequest) returns (SetUserStatusResponse);
+  rpc SearchUsers (SearchUsersRequest) returns (SearchUsersResponse);
+  rpc GetUserProfileSummary (GetUserProfileSummaryRequest) returns (GetUserProfileSummaryResponse);
+}
+
+enum UserTheme {
+  USER_THEME_UNSPECIFIED = 0;
+  USER_THEME_SYSTEM = 1;
+  USER_THEME_LIGHT = 2;
+  USER_THEME_DARK = 3;
+}
+
+message UserPreferences {
+  string language = 1;
+  string time_zone = 2;
+  UserTheme theme = 3;
+  bool email_notifications_enabled = 4;
+  bool sms_notifications_enabled = 5;
+}
+
+message UserRecord {
+  string id = 1;
+  string tenant_id = 2;
+  string external_auth_user_id = 3;
+  string email = 4;
+  string display_name = 5;
+  string first_name = 6;
+  string last_name = 7;
+  string phone_number = 8;
+  bool is_active = 9;
+  UserPreferences preferences = 10;
+  bool is_deleted = 11;
+  string deleted_at = 12;
+  string deleted_by = 13;
+  string created_at = 14;
+  string updated_at = 15;
+  string created_by = 16;
+  string updated_by = 17;
+}
+
+message UserProfileSummaryRecord {
+  string id = 1;
+  string external_auth_user_id = 2;
+  string email = 3;
+  string display_name = 4;
+  bool is_active = 5;
+}
+
+message UserPatch {
+  optional string email = 1;
+  optional string display_name = 2;
+  optional string first_name = 3;
+  optional string last_name = 4;
+  optional string phone_number = 5;
+}
+
+message UserPreferencesPatch {
+  optional string language = 1;
+  optional string time_zone = 2;
+  optional UserTheme theme = 3;
+  optional bool email_notifications_enabled = 4;
+  optional bool sms_notifications_enabled = 5;
+}
+
+message GetUserRequest {
+  string user_id = 1;
+  bool include_deleted = 2;
+}
+
+message GetUserResponse {
+  UserRecord user = 1;
+}
+
+message BatchGetUsersRequest {
+  repeated string user_ids = 1;
+  bool include_deleted = 2;
+}
+
+message BatchGetUsersResponse {
+  repeated UserRecord users = 1;
+}
+
+message CreateUserRequest {
+  string external_auth_user_id = 1;
+  string email = 2;
+  string display_name = 3;
+  string first_name = 4;
+  string last_name = 5;
+  string phone_number = 6;
+  bool is_active = 7;
+  UserPreferences preferences = 8;
+}
+
+message CreateUserResponse {
+  UserRecord user = 1;
+}
+
+message UpdateUserRequest {
+  string user_id = 1;
+  string email = 2;
+  string display_name = 3;
+  string first_name = 4;
+  string last_name = 5;
+  string phone_number = 6;
+  UserPreferences preferences = 7;
+}
+
+message UpdateUserResponse {
+  UserRecord user = 1;
+}
+
+message PatchUserRequest {
+  string user_id = 1;
+  UserPatch patch = 2;
+  UserPreferencesPatch preferences_patch = 3;
+}
+
+message PatchUserResponse {
+  UserRecord user = 1;
+}
+
+message DeleteUserRequest {
+  string user_id = 1;
+}
+
+message DeleteUserResponse {
+  bool success = 1;
+}
+
+message RestoreUserRequest {
+  string user_id = 1;
+}
+
+message RestoreUserResponse {
+  UserRecord user = 1;
+}
+
+message SetUserStatusRequest {
+  string user_id = 1;
+  bool is_active = 2;
+}
+
+message SetUserStatusResponse {
+  UserRecord user = 1;
+}
+
+message SearchUsersRequest {
+  int32 offset = 1;
+  int32 limit = 2;
+  string search = 3;
+  bool include_deleted = 4;
+  optional bool is_active = 5;
+  string sort_by = 6;
+  string sort_direction = 7;
+}
+
+message SearchUsersResponse {
+  repeated UserRecord users = 1;
+  int64 total_count = 2;
+  int32 offset = 3;
+  int32 limit = 4;
+  bool has_more = 5;
+}
+
+message GetUserProfileSummaryRequest {
+  string user_id = 1;
+}
+
+message GetUserProfileSummaryResponse {
+  UserProfileSummaryRecord summary = 1;
+}

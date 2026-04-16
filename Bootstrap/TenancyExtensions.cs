@@ -16,6 +16,7 @@ public static class TenancyExtensions
             var requiresTenant = context.Request.Path.StartsWithSegments(TenancyConstants.ApiPrefix, StringComparison.OrdinalIgnoreCase)
                                  && !string.Equals(context.Request.Path.Value, TenancyConstants.HealthPath, StringComparison.OrdinalIgnoreCase)
                                  && !HttpMethods.IsOptions(context.Request.Method);
+            requiresTenant = requiresTenant || IsGrpcRequest(context);
 
             if (!requiresTenant)
             {
@@ -147,5 +148,12 @@ public static class TenancyExtensions
             tenantContextAccessor.SetCurrent(new TenantContext(tenantId, userId, access.Roles, access.Permissions));
             await next();
         });
+    }
+
+    private static bool IsGrpcRequest(HttpContext context)
+    {
+        var contentType = context.Request.ContentType;
+        return !string.IsNullOrWhiteSpace(contentType)
+               && contentType.StartsWith("application/grpc", StringComparison.OrdinalIgnoreCase);
     }
 }

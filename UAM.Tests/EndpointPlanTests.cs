@@ -24,7 +24,7 @@ public sealed class EndpointPlanTests(TestWebApplicationFactory factory) : IClas
     }
 
     [Theory]
-    [InlineData("/api/v1/stories")]
+    [InlineData("/api/v1/users")]
     public async Task ApiRoutes_RequireTenantHeader(string route)
     {
         var response = await _client.GetAsync(route);
@@ -39,7 +39,7 @@ public sealed class EndpointPlanTests(TestWebApplicationFactory factory) : IClas
     [Fact]
     public async Task ApiRoutes_RequireAuthentication()
     {
-        using var request = new HttpRequestMessage(HttpMethod.Get, "/api/v1/stories");
+        using var request = new HttpRequestMessage(HttpMethod.Get, "/api/v1/users");
         request.Headers.Add("X-Tenant-Id", "tenant-a");
 
         var response = await _client.SendAsync(request);
@@ -53,7 +53,7 @@ public sealed class EndpointPlanTests(TestWebApplicationFactory factory) : IClas
     [Fact]
     public async Task ApiRoutes_RejectUnknownTenant()
     {
-        using var request = new HttpRequestMessage(HttpMethod.Get, "/api/v1/stories");
+        using var request = new HttpRequestMessage(HttpMethod.Get, "/api/v1/users");
         request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", TestTokens.ForTenant("tenant-unknown"));
         request.Headers.Add("X-Tenant-Id", "tenant-unknown");
 
@@ -68,7 +68,7 @@ public sealed class EndpointPlanTests(TestWebApplicationFactory factory) : IClas
     [Fact]
     public async Task ApiRoutes_AllowTenantFromTokenClaim_WithoutHeader()
     {
-        using var request = new HttpRequestMessage(HttpMethod.Get, "/api/v1/stories");
+        using var request = new HttpRequestMessage(HttpMethod.Get, "/api/v1/users");
         request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", TestTokens.ForTenant("tenant-a"));
 
         var response = await _client.SendAsync(request);
@@ -79,7 +79,7 @@ public sealed class EndpointPlanTests(TestWebApplicationFactory factory) : IClas
     [Fact]
     public async Task ApiRoutes_FallbackToHeader_WhenTokenHasNoTenantClaim()
     {
-        using var request = new HttpRequestMessage(HttpMethod.Get, "/api/v1/stories");
+        using var request = new HttpRequestMessage(HttpMethod.Get, "/api/v1/users");
         request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", TestTokens.ForTenantWithoutTenantIdClaim("tenant-a"));
         request.Headers.Add("X-Tenant-Id", "tenant-a");
 
@@ -91,7 +91,7 @@ public sealed class EndpointPlanTests(TestWebApplicationFactory factory) : IClas
     [Fact]
     public async Task ApiRoutes_RejectMismatchedTenantClaimAndHeader()
     {
-        using var request = new HttpRequestMessage(HttpMethod.Get, "/api/v1/stories");
+        using var request = new HttpRequestMessage(HttpMethod.Get, "/api/v1/users");
         request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", TestTokens.ForTenant("tenant-a"));
         request.Headers.Add("X-Tenant-Id", "tenant-b");
 
@@ -103,4 +103,3 @@ public sealed class EndpointPlanTests(TestWebApplicationFactory factory) : IClas
         json.GetProperty("title").GetString().Should().Be("Tenant mismatch");
     }
 }
-

@@ -12,7 +12,8 @@ public static class ApiRegister
             .RequireAuthorization([SecurityConstants.ApiAccessPolicy]);
 
         api.RegisterAppRoutes();
-        api.MapGroup("/stories").RegisterStoryRoutes().WithTags("Stories").WithSummary("Stories API");
+        api.MapGroup("/users").RegisterUserRoutes().WithTags("Users").WithSummary("Users API");
+        api.RegisterMeRoutes().WithTags("Users").WithSummary("Current user API");
 
         return app;
     }

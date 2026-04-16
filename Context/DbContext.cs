@@ -8,23 +8,32 @@ public class AppDbContext(DbContextOptions<AppDbContext> options, ITenantProvide
     private const string SystemUser = "system";
     private readonly string _tenantId = tenantProvider.GetRequiredTenantId();
 
-    public DbSet<Content> Story => Set<Content>();
+    public DbSet<UserProfile> User => Set<UserProfile>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
-        ConfigureBaseModel<Content>(modelBuilder);
+        ConfigureBaseModel<UserProfile>(modelBuilder);
 
-        modelBuilder.Entity<Content>(entity =>
+        modelBuilder.Entity<UserProfile>(entity =>
         {
-            entity.ToTable("Stories");
-            entity.Property(e => e.Title).HasMaxLength(256).IsRequired();
-            entity.Property(e => e.Slug).HasMaxLength(256).IsRequired();
-            entity.Property(e => e.Description).HasMaxLength(1024);
-            entity.Property(e => e.Value).HasColumnType("text");
-            entity.HasIndex(e => new { e.TenantId, e.Slug }).IsUnique().HasFilter("\"IsDeleted\" = FALSE");
+            entity.ToTable("Users");
+            entity.Property(e => e.ExternalAuthUserId).HasMaxLength(128).IsRequired();
+            entity.Property(e => e.Email).HasMaxLength(320).IsRequired();
+            entity.Property(e => e.DisplayName).HasMaxLength(256).IsRequired();
+            entity.Property(e => e.FirstName).HasMaxLength(128);
+            entity.Property(e => e.LastName).HasMaxLength(128);
+            entity.Property(e => e.PhoneNumber).HasMaxLength(32);
+
+            entity.Property(e => e.PreferencesLanguage).HasMaxLength(16).IsRequired();
+            entity.Property(e => e.PreferencesTimeZone).HasMaxLength(64).IsRequired();
+            entity.Property(e => e.PreferencesTheme).HasConversion<string>().HasMaxLength(16).IsRequired();
+
+            entity.HasIndex(e => new { e.TenantId, e.Email }).IsUnique().HasFilter("\"IsDeleted\" = FALSE");
+            entity.HasIndex(e => new { e.TenantId, e.ExternalAuthUserId }).IsUnique().HasFilter("\"IsDeleted\" = FALSE");
+            entity.HasIndex(e => new { e.TenantId, e.IsActive });
         });
 
-        modelBuilder.Entity<Content>().HasQueryFilter(e => e.TenantId == _tenantId && !e.IsDeleted);
+        modelBuilder.Entity<UserProfile>().HasQueryFilter(e => e.TenantId == _tenantId && !e.IsDeleted);
     }
 
     public override int SaveChanges()

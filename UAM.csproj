@@ -9,6 +9,7 @@
 
     <ItemGroup>
         <PackageReference Include="Google.Protobuf" Version="3.31.1" />
+        <PackageReference Include="Grpc.AspNetCore" Version="2.76.0" />
         <PackageReference Include="Grpc.Net.ClientFactory" Version="2.76.0" />
         <PackageReference Include="Grpc.Tools" Version="2.76.0">
             <PrivateAssets>all</PrivateAssets>
@@ -29,6 +30,7 @@
     <ItemGroup>
         <Protobuf Include="Protos/tenant_directory.proto" GrpcServices="Client" />
         <Protobuf Include="Protos/identity_access.proto" GrpcServices="Client" />
+        <Protobuf Include="Protos/user_access.proto" GrpcServices="Both" />
     </ItemGroup>
 
     <ItemGroup>

@@ -5,10 +5,11 @@ This directory contains a `dotnet new` template for a tenant-aware .NET 10 micro
 ## Included scaffold
 
 - ASP.NET Core Minimal API
+- Hosted gRPC server (`UserAccess`) and outbound gRPC clients
 - `X-Tenant-Id` + tenant JWT auth pipeline
 - Tenant and identity authorization through gRPC clients
 - EF Core + PostgreSQL DbContext with tenant/soft-delete query filters
-- One sample module: `stories`
+- UAM user module (`/api/v1/users`, `/api/v1/me`) with soft-delete + preferences
 - xUnit test project with in-memory test host and fake remote clients
 
 ## Install template locally
@@ -41,4 +42,7 @@ dotnet run --project CatalogService.csproj
 - Other `/api/v1/*` routes require:
   - `Authorization: Bearer <jwt>`
   - `X-Tenant-Id`
+- User API routes are available under:
+  - `/api/v1/users`
+  - `/api/v1/me`
 - JWT signing keys and tenant access checks are resolved via gRPC endpoints configured under `RemoteServices`.

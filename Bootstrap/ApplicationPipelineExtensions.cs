@@ -1,5 +1,7 @@
 using Scalar.AspNetCore;
 using UAM.Apis;
+using UAM.Security;
+using UAM.Services.Users;
 
 namespace UAM.Bootstrap;
 
@@ -19,6 +21,7 @@ public static class ApplicationPipelineExtensions
         app.UseTenantValidation();
         app.UseAuthorization();
         app.RegisterApis();
+        app.MapGrpcService<UserAccessGrpcService>().RequireAuthorization([SecurityConstants.ApiAccessPolicy]);
 
         return app;
     }

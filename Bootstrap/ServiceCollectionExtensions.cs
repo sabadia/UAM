@@ -8,7 +8,7 @@ using UAM.Repositories;
 using UAM.Security;
 using System.Text.Json;
 using System.Text.Json.Serialization;
-using UAM.Services.Stories;
+using UAM.Services.Users;
 
 namespace UAM.Bootstrap;
 
@@ -17,6 +17,7 @@ public static class ServiceCollectionExtensions
     public static IServiceCollection AddUAMServices(this IServiceCollection services, IConfiguration configuration, IHostEnvironment environment)
     {
         services.AddOpenApi();
+        services.AddGrpc();
 
         services.AddProblemDetails();
 
@@ -32,7 +33,7 @@ public static class ServiceCollectionExtensions
         services.AddScoped<ITenantProvider, HttpContextTenantProvider>();
         services.AddScoped(typeof(IRepository<>), typeof(EfRepository<>));
 
-        services.AddScoped<IStoryService, StoryService>();
+        services.AddScoped<IUserService, UserService>();
 
         var jwtOptions = configuration.GetSection(JwtOptions.SectionName).Get<JwtOptions>()
                          ?? throw new InvalidOperationException($"Missing configuration section '{JwtOptions.SectionName}'.");

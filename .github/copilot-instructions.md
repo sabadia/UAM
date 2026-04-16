@@ -15,7 +15,7 @@ dotnet build UAM.sln
 dotnet test UAM.Tests/UAM.Tests.csproj
 
 # Run a single test method
-dotnet test UAM.Tests/UAM.Tests.csproj --filter "FullyQualifiedName~UAM.Tests.StoryRoutesTests.List_SearchIsCaseInsensitive"
+dotnet test UAM.Tests/UAM.Tests.csproj --filter "FullyQualifiedName~UAM.Tests.UserRoutesTests.List_SearchIsCaseInsensitive"
 ```
 
 No dedicated lint command is configured in this repository.
@@ -27,7 +27,7 @@ UAM is an ASP.NET Core Minimal API (`Program.cs`) composed through bootstrap ext
 - `Bootstrap/ServiceCollectionExtensions.cs` wires OpenAPI/ProblemDetails, JSON conventions, DbContext, repositories, tenant provider, and domain services.
 - `Bootstrap/ApplicationPipelineExtensions.cs` wires exception handling, OpenAPI/Scalar in development, tenant-header enforcement middleware, and API route registration.
 
-HTTP routing is grouped under `/api/v1` in `Apis/ApiRegister.cs` with a sample route module (`stories`). The route module delegates to a service layer in `Services/*`.
+HTTP routing is grouped under `/api/v1` in `Apis/ApiRegister.cs` with user route modules (`users` and `me`) delegating to a service layer in `Services/*`.
 
 Persistence is EF Core with PostgreSQL in runtime (`Context/DbContext.cs`, `Npgsql`) and in-memory DB in tests (`UAM.Tests/EndpointTestSupport.cs`). `EfRepository<T>` is a thin query/add/find abstraction; business logic and validation live in services.
 

@@ -48,13 +48,14 @@ public class AppDbContextTests
     {
         using var context = CreateContext("tenant-a", Guid.NewGuid().ToString());
 
-        var content = new Content
+        var content = new UserProfile
         {
-            Title = "Hello world",
-            Slug = "hello-world"
+            ExternalAuthUserId = "external-user-1",
+            Email = "user1@example.com",
+            DisplayName = "Hello User"
         };
 
-        context.Story.Add(content);
+        context.User.Add(content);
         context.SaveChanges();
 
         content.TenantId.Should().Be("tenant-a");
@@ -72,17 +73,18 @@ public class AppDbContextTests
 
         using (var tenantAContext = CreateContext("tenant-a", databaseName))
         {
-            tenantAContext.Story.Add(new Content
+            tenantAContext.User.Add(new UserProfile
             {
-                Title = "Tenant A story",
-                Slug = "tenant-a-story"
+                ExternalAuthUserId = "external-user-2",
+                Email = "tenant-a@example.com",
+                DisplayName = "Tenant A User"
             });
             tenantAContext.SaveChanges();
         }
 
         using var tenantBContext = CreateContext("tenant-b", databaseName);
 
-        tenantBContext.Story.Should().BeEmpty();
+        tenantBContext.User.Should().BeEmpty();
     }
 
     [Fact]
@@ -90,24 +92,25 @@ public class AppDbContextTests
     {
         using var context = CreateContext("tenant-a", Guid.NewGuid().ToString());
 
-        var content = new Content
+        var content = new UserProfile
         {
-            Title = "Soft deleted story",
-            Slug = "soft-deleted-story"
+            ExternalAuthUserId = "external-user-3",
+            Email = "soft-deleted@example.com",
+            DisplayName = "Soft deleted user"
         };
 
-        context.Story.Add(content);
+        context.User.Add(content);
         context.SaveChanges();
 
         content.MarkDeleted("system", DateTimeOffset.UtcNow);
         context.SaveChanges();
 
-        context.Story.Should().BeEmpty();
+        context.User.Should().BeEmpty();
 
         content.Restore();
         context.SaveChanges();
 
-        context.Story.Should().ContainSingle(entity => entity.Id == content.Id);
+        context.User.Should().ContainSingle(entity => entity.Id == content.Id);
     }
 
     private static AppDbContext CreateContext(string tenantId, string databaseName)

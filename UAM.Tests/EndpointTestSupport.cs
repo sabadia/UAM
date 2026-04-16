@@ -25,7 +25,6 @@ public sealed class TestWebApplicationFactory : IDisposable
     private const string TestJwtAudience = "uam-tests-clients";
     private readonly string _databaseName = $"uam-tests-{Guid.NewGuid():N}";
     private readonly WebApplication _app;
-    private readonly HttpClient _client;
 
     public TestWebApplicationFactory()
     {
@@ -61,18 +60,16 @@ public sealed class TestWebApplicationFactory : IDisposable
         _app = builder.Build();
         Program.ConfigurePipeline(_app);
         _app.StartAsync().GetAwaiter().GetResult();
-        _client = _app.GetTestClient();
         TestTokens.Initialize(TestJwtIssuer, TestJwtAudience);
     }
 
     public HttpClient CreateClient()
     {
-        return _client;
+        return _app.GetTestClient();
     }
 
     public void Dispose()
     {
-        _client.Dispose();
         _app.DisposeAsync().AsTask().GetAwaiter().GetResult();
     }
 }
@@ -128,13 +125,20 @@ internal static class TestTokens
         return CreateToken("user-1", tenantId, _issuer, _audience, signingCredentials, includeTenantIdClaim: false);
     }
 
+    public static string ForTenantWithExplicitUserIdClaim(string tenantId, string explicitUserId, string subjectUserId = "user-1")
+    {
+        var signingCredentials = new SigningCredentials(FakeTenantDirectoryClient.GetTenantPrivateKey(tenantId), SecurityAlgorithms.RsaSha256);
+        return CreateToken(subjectUserId, tenantId, _issuer, _audience, signingCredentials, includeTenantIdClaim: true, explicitUserId);
+    }
+
     private static string CreateToken(
         string userId,
         string tenantId,
         string issuer,
         string audience,
         SigningCredentials credentials,
-        bool includeTenantIdClaim)
+        bool includeTenantIdClaim,
+        string? explicitUserIdClaim = null)
     {
         var claims = new List<Claim>
         {
@@ -145,6 +149,9 @@ internal static class TestTokens
 
         if (includeTenantIdClaim)
             claims.Add(new(TenancyConstants.TenantClaimName, tenantId));
+
+        if (!string.IsNullOrWhiteSpace(explicitUserIdClaim))
+            claims.Add(new("user_id", explicitUserIdClaim!));
 
         var token = new JwtSecurityToken(
             issuer: issuer,
@@ -217,7 +224,7 @@ internal sealed class FakeIdentityAccessClient : IIdentityAccessClient
 {
     public Task<TenantAccessResult> AuthorizeTenantAccessAsync(string tenantId, string userId, CancellationToken cancellationToken)
     {
-        var allowed = userId == "user-1" && tenantId != "tenant-forbidden";
-        return Task.FromResult(new TenantAccessResult(allowed, allowed ? ["editor"] : [], allowed ? ["stories.write"] : []));
+        var allowed = tenantId != "tenant-forbidden" && userId != "user-forbidden";
+        return Task.FromResult(new TenantAccessResult(allowed, allowed ? ["editor"] : [], allowed ? ["users.write"] : []));
     }
 }
