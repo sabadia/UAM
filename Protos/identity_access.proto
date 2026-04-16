@@ -1,0 +1,20 @@
+syntax = "proto3";
+
+option csharp_namespace = "UAM.Grpc.Identity.V1";
+
+package uam.identity.v1;
+
+service IdentityAccess {
+  rpc AuthorizeTenantAccess (AuthorizeTenantAccessRequest) returns (AuthorizeTenantAccessResponse);
+}
+
+message AuthorizeTenantAccessRequest {
+  string user_id = 1;
+  string tenant_id = 2;
+}
+
+message AuthorizeTenantAccessResponse {
+  bool is_allowed = 1;
+  repeated string roles = 2;
+  repeated string permissions = 3;
+}

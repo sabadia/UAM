@@ -1,0 +1,36 @@
+syntax = "proto3";
+
+option csharp_namespace = "UAM.Grpc.Tenancy.V1";
+
+package uam.tenancy.v1;
+
+service TenantDirectory {
+  rpc GetTenant (GetTenantRequest) returns (GetTenantResponse);
+  rpc GetTenantSigningKey (GetTenantSigningKeyRequest) returns (GetTenantSigningKeyResponse);
+}
+
+message GetTenantRequest {
+  string tenant_id = 1;
+}
+
+message GetTenantResponse {
+  bool exists = 1;
+  Tenant tenant = 2;
+}
+
+message Tenant {
+  string id = 1;
+  bool is_active = 2;
+  string name = 3;
+}
+
+message GetTenantSigningKeyRequest {
+  string tenant_id = 1;
+  string key_id = 2;
+}
+
+message GetTenantSigningKeyResponse {
+  bool exists = 1;
+  bool is_active = 2;
+  string public_key_pem = 3;
+}
