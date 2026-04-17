@@ -1,8 +1,8 @@
 syntax = "proto3";
 
-option csharp_namespace = "UAM.Grpc.Identity.V1";
+option csharp_namespace = "Identity.Grpc.Identity.V1";
 
-package uam.identity.v1;
+package identity.identity.v1;
 
 service IdentityAccess {
   rpc AuthorizeTenantAccess (AuthorizeTenantAccessRequest) returns (AuthorizeTenantAccessResponse);

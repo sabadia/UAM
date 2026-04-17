@@ -1,20 +1,20 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
-using UAM.Grpc.Identity.V1;
-using UAM.Grpc.Tenancy.V1;
 using UAM.Context;
 using UAM.Repositories;
 using UAM.Security;
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using Identity.Grpc.Identity.V1;
+using Tenant.Grpc.Tenancy.V1;
 using UAM.Services.Users;
 
 namespace UAM.Bootstrap;
 
 public static class ServiceCollectionExtensions
 {
-    public static IServiceCollection AddUAMServices(this IServiceCollection services, IConfiguration configuration, IHostEnvironment environment)
+    public static IServiceCollection AddUamServices(this IServiceCollection services, IConfiguration configuration, IHostEnvironment environment)
     {
         services.AddOpenApi();
         services.AddGrpc();

@@ -1,8 +1,8 @@
 syntax = "proto3";
 
-option csharp_namespace = "UAM.Grpc.Tenancy.V1";
+option csharp_namespace = "Tenant.Grpc.Tenancy.V1";
 
-package uam.tenancy.v1;
+package tenant.tenancy.v1;
 
 service TenantDirectory {
   rpc GetTenant (GetTenantRequest) returns (GetTenantResponse);

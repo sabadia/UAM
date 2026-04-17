@@ -12,7 +12,7 @@ public partial class Program
 {
     public static void ConfigureServices(WebApplicationBuilder builder)
     {
-        builder.Services.AddUAMServices(builder.Configuration, builder.Environment);
+        builder.Services.AddUamServices(builder.Configuration, builder.Environment);
     }
 
     public static void ConfigurePipeline(WebApplication app)

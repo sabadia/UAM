@@ -1,6 +1,7 @@
 using Grpc.Core;
-using UAM.Grpc.Identity.V1;
-using UAM.Grpc.Tenancy.V1;
+using Identity.Grpc.Identity.V1;
+using Tenant.Grpc.Tenancy.V1;
+
 
 namespace UAM.Security;
 
