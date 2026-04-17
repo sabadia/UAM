@@ -6,9 +6,8 @@ namespace UAM.Context;
 public class AppDbContext(DbContextOptions<AppDbContext> options, ITenantProvider tenantProvider) : DbContext(options)
 {
     private const string SystemUser = "system";
-    private readonly string _tenantId = tenantProvider.GetRequiredTenantId();
 
-    public DbSet<UserProfile> User => Set<UserProfile>();
+    public DbSet<UserProfile> Users => Set<UserProfile>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -32,8 +31,8 @@ public class AppDbContext(DbContextOptions<AppDbContext> options, ITenantProvide
             entity.HasIndex(e => new { e.TenantId, e.ExternalAuthUserId }).IsUnique().HasFilter("\"IsDeleted\" = FALSE");
             entity.HasIndex(e => new { e.TenantId, e.IsActive });
         });
-
-        modelBuilder.Entity<UserProfile>().HasQueryFilter(e => e.TenantId == _tenantId && !e.IsDeleted);
+        string tenantId = tenantProvider.GetRequiredTenantId();
+        modelBuilder.Entity<UserProfile>().HasQueryFilter(e => e.TenantId == tenantId && !e.IsDeleted);
     }
 
     public override int SaveChanges()
@@ -51,12 +50,13 @@ public class AppDbContext(DbContextOptions<AppDbContext> options, ITenantProvide
     private void ApplyTenantAndAuditValues()
     {
         var now = DateTimeOffset.UtcNow;
+        string tenantId = tenantProvider.GetRequiredTenantId();
 
         foreach (var entry in ChangeTracker.Entries<BaseModel>())
         {
             if (entry.State == EntityState.Added)
             {
-                entry.Entity.TenantId = _tenantId;
+                entry.Entity.TenantId = tenantId;
                 entry.Entity.CreatedAt = entry.Entity.CreatedAt == default ? now : entry.Entity.CreatedAt;
                 entry.Entity.UpdatedAt = now;
                 entry.Entity.CreatedBy = string.IsNullOrWhiteSpace(entry.Entity.CreatedBy) ? SystemUser : entry.Entity.CreatedBy;
@@ -69,7 +69,7 @@ public class AppDbContext(DbContextOptions<AppDbContext> options, ITenantProvide
 
             if (entry.State == EntityState.Modified)
             {
-                entry.Entity.TenantId = _tenantId;
+                entry.Entity.TenantId = tenantId;
                 entry.Entity.UpdatedAt = now;
                 entry.Entity.UpdatedBy = string.IsNullOrWhiteSpace(entry.Entity.UpdatedBy) ? SystemUser : entry.Entity.UpdatedBy;
 

@@ -55,7 +55,7 @@ public class AppDbContextTests
             DisplayName = "Hello User"
         };
 
-        context.User.Add(content);
+        context.Users.Add(content);
         context.SaveChanges();
 
         content.TenantId.Should().Be("tenant-a");
@@ -73,7 +73,7 @@ public class AppDbContextTests
 
         using (var tenantAContext = CreateContext("tenant-a", databaseName))
         {
-            tenantAContext.User.Add(new UserProfile
+            tenantAContext.Users.Add(new UserProfile
             {
                 ExternalAuthUserId = "external-user-2",
                 Email = "tenant-a@example.com",
@@ -84,7 +84,7 @@ public class AppDbContextTests
 
         using var tenantBContext = CreateContext("tenant-b", databaseName);
 
-        tenantBContext.User.Should().BeEmpty();
+        tenantBContext.Users.Should().BeEmpty();
     }
 
     [Fact]
@@ -99,18 +99,18 @@ public class AppDbContextTests
             DisplayName = "Soft deleted user"
         };
 
-        context.User.Add(content);
+        context.Users.Add(content);
         context.SaveChanges();
 
         content.MarkDeleted("system", DateTimeOffset.UtcNow);
         context.SaveChanges();
 
-        context.User.Should().BeEmpty();
+        context.Users.Should().BeEmpty();
 
         content.Restore();
         context.SaveChanges();
 
-        context.User.Should().ContainSingle(entity => entity.Id == content.Id);
+        context.Users.Should().ContainSingle(entity => entity.Id == content.Id);
     }
 
     private static AppDbContext CreateContext(string tenantId, string databaseName)

@@ -371,7 +371,7 @@ public sealed class UserService(
     private async Task EnsureUniqueExternalAuthUserIdAsync(string externalAuthUserId, string? userId, CancellationToken cancellationToken)
     {
         await ServiceGuards.EnsureDoesNotExistAsync(
-            context.User,
+            context.Users,
             entity => entity.ExternalAuthUserId == externalAuthUserId && entity.Id != userId,
             $"A user with externalAuthUserId '{externalAuthUserId}' already exists.",
             cancellationToken);
@@ -380,7 +380,7 @@ public sealed class UserService(
     private async Task EnsureUniqueEmailAsync(string email, string? userId, CancellationToken cancellationToken)
     {
         await ServiceGuards.EnsureDoesNotExistAsync(
-            context.User,
+            context.Users,
             entity => entity.Email == email && entity.Id != userId,
             $"A user with email '{email}' already exists.",
             cancellationToken);

@@ -1,8 +1,8 @@
 namespace UAM.Security;
 
 public sealed record TenantLookupResult(bool Exists, bool IsActive);
-public sealed record TenantSigningKeyResult(bool Exists, bool IsActive, string? PublicKeyPem);
 
+public sealed record TenantSigningKeyResult(string Id,bool Exists, bool IsActive, string? PublicKeyPem, string? PrivateKeyPem);
 public sealed record TenantAccessResult(
     bool IsAllowed,
     IReadOnlyList<string> Roles,

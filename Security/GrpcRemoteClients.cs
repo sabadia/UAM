@@ -34,7 +34,7 @@ public sealed class TenantDirectoryGrpcClient(TenantDirectory.TenantDirectoryCli
                 KeyId = keyId ?? string.Empty
             }, cancellationToken: cancellationToken);
 
-            return new TenantSigningKeyResult(response.Exists, response.IsActive, response.PublicKeyPem);
+            return new TenantSigningKeyResult(response.Id, response.Exists, response.IsActive, response.PublicKeyPem, response.PrivateKeyPem);
         }
         catch (RpcException ex) when (ex.StatusCode is StatusCode.Unavailable or StatusCode.DeadlineExceeded)
         {

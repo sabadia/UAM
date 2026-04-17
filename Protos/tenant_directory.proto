@@ -30,7 +30,9 @@ message GetTenantSigningKeyRequest {
 }
 
 message GetTenantSigningKeyResponse {
-  bool exists = 1;
-  bool is_active = 2;
-  string public_key_pem = 3;
+  string id = 1;
+  bool exists = 2;
+  bool is_active = 3;
+  string public_key_pem = 4;
+  string private_key_pem = 5;
 }

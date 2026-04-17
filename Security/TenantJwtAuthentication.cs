@@ -33,7 +33,13 @@ public sealed class TenantSigningKeyProvider(ITenantDirectoryClient tenantDirect
 
         var rsa = RSA.Create();
         rsa.ImportFromPem(response.PublicKeyPem);
-        var result = new TenantSigningKeyLookupResult(response.Exists, response.IsActive, new RsaSecurityKey(rsa));
+
+        var signingKey = new RsaSecurityKey(rsa)
+        {
+            KeyId = response.Id
+        };
+        
+        var result = new TenantSigningKeyLookupResult(response.Exists, response.IsActive, signingKey);
         cache.Set(cacheKey, result, TimeSpan.FromMinutes(5));
         return result;
     }
