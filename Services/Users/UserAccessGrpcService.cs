@@ -1,4 +1,7 @@
+using System.Security.Claims;
 using Grpc.Core;
+using Slogtry.Abstractions;
+using Slogtry.Grpc;
 using UAM.Dtos.Users;
 using UAM.Grpc.Users.V1;
 using DtoUserTheme = UAM.Dtos.Users.UserTheme;
@@ -6,11 +9,13 @@ using GrpcUserTheme = UAM.Grpc.Users.V1.UserTheme;
 
 namespace UAM.Services.Users;
 
-public sealed class UserAccessGrpcService(IUserService userService) : UserAccess.UserAccessBase
+public sealed class UserAccessGrpcService(
+    IUserService userService,
+    ITenantContextAccessor tenantContextAccessor) : UserAccess.UserAccessBase
 {
     public override async Task<GetUserResponse> GetUser(GetUserRequest request, ServerCallContext context)
     {
-        return await ExecuteAsync(async () =>
+        return await ExecuteAsync(context, async () =>
         {
             var user = await userService.GetAsync(request.UserId, request.IncludeDeleted, context.CancellationToken);
             if (user is null) throw NotFound($"User '{request.UserId}' was not found.");
@@ -24,7 +29,7 @@ public sealed class UserAccessGrpcService(IUserService userService) : UserAccess
 
     public override async Task<BatchGetUsersResponse> BatchGetUsers(BatchGetUsersRequest request, ServerCallContext context)
     {
-        return await ExecuteAsync(async () =>
+        return await ExecuteAsync(context, async () =>
         {
             var users = await userService.BatchGetAsync(request.UserIds, request.IncludeDeleted, context.CancellationToken);
             var response = new BatchGetUsersResponse();
@@ -35,7 +40,7 @@ public sealed class UserAccessGrpcService(IUserService userService) : UserAccess
 
     public override async Task<CreateUserResponse> CreateUser(CreateUserRequest request, ServerCallContext context)
     {
-        return await ExecuteAsync(async () =>
+        return await ExecuteAsync(context, async () =>
         {
             var user = await userService.CreateAsync(new UserCreateRequest(
                 request.ExternalAuthUserId,
@@ -56,7 +61,7 @@ public sealed class UserAccessGrpcService(IUserService userService) : UserAccess
 
     public override async Task<UpdateUserResponse> UpdateUser(UpdateUserRequest request, ServerCallContext context)
     {
-        return await ExecuteAsync(async () =>
+        return await ExecuteAsync(context, async () =>
         {
             var user = await userService.UpdateAsync(request.UserId, new UserUpdateRequest(
                 request.Email,
@@ -77,7 +82,7 @@ public sealed class UserAccessGrpcService(IUserService userService) : UserAccess
 
     public override async Task<PatchUserResponse> PatchUser(PatchUserRequest request, ServerCallContext context)
     {
-        return await ExecuteAsync(async () =>
+        return await ExecuteAsync(context, async () =>
         {
             var preferencesPatch = request.PreferencesPatch is null
                 ? null
@@ -110,7 +115,7 @@ public sealed class UserAccessGrpcService(IUserService userService) : UserAccess
 
     public override async Task<DeleteUserResponse> DeleteUser(DeleteUserRequest request, ServerCallContext context)
     {
-        return await ExecuteAsync(async () =>
+        return await ExecuteAsync(context, async () =>
         {
             var success = await userService.DeleteAsync(request.UserId, context.CancellationToken);
             if (!success) throw NotFound($"User '{request.UserId}' was not found.");
@@ -124,7 +129,7 @@ public sealed class UserAccessGrpcService(IUserService userService) : UserAccess
 
     public override async Task<RestoreUserResponse> RestoreUser(RestoreUserRequest request, ServerCallContext context)
     {
-        return await ExecuteAsync(async () =>
+        return await ExecuteAsync(context, async () =>
         {
             var user = await userService.RestoreAsync(request.UserId, context.CancellationToken);
             if (user is null) throw NotFound($"User '{request.UserId}' was not found.");
@@ -138,7 +143,7 @@ public sealed class UserAccessGrpcService(IUserService userService) : UserAccess
 
     public override async Task<SetUserStatusResponse> SetUserStatus(SetUserStatusRequest request, ServerCallContext context)
     {
-        return await ExecuteAsync(async () =>
+        return await ExecuteAsync(context, async () =>
         {
             var user = await userService.SetActiveAsync(request.UserId, request.IsActive, context.CancellationToken);
             if (user is null) throw NotFound($"User '{request.UserId}' was not found.");
@@ -152,7 +157,7 @@ public sealed class UserAccessGrpcService(IUserService userService) : UserAccess
 
     public override async Task<SearchUsersResponse> SearchUsers(SearchUsersRequest request, ServerCallContext context)
     {
-        return await ExecuteAsync(async () =>
+        return await ExecuteAsync(context, async () =>
         {
             var page = await userService.ListAsync(new UserListQuery(
                 request.Offset,
@@ -177,7 +182,7 @@ public sealed class UserAccessGrpcService(IUserService userService) : UserAccess
 
     public override async Task<GetUserProfileSummaryResponse> GetUserProfileSummary(GetUserProfileSummaryRequest request, ServerCallContext context)
     {
-        return await ExecuteAsync(async () =>
+        return await ExecuteAsync(context, async () =>
         {
             var summary = await userService.GetProfileSummaryAsync(request.UserId, context.CancellationToken);
             if (summary is null) throw NotFound($"User '{request.UserId}' was not found.");
@@ -196,10 +201,11 @@ public sealed class UserAccessGrpcService(IUserService userService) : UserAccess
         });
     }
 
-    private static async Task<T> ExecuteAsync<T>(Func<Task<T>> action)
+    private async Task<T> ExecuteAsync<T>(ServerCallContext context, Func<Task<T>> action)
     {
         try
         {
+            EnsureTenantContext(context);
             return await action();
         }
         catch (RpcException)
@@ -210,6 +216,26 @@ public sealed class UserAccessGrpcService(IUserService userService) : UserAccess
         {
             throw new RpcException(new Status(StatusCode.InvalidArgument, ex.Message));
         }
+    }
+
+    private void EnsureTenantContext(ServerCallContext context)
+    {
+        if (!string.IsNullOrWhiteSpace(tenantContextAccessor.Current?.TenantId))
+            return;
+
+        var httpContext = context.GetHttpContext();
+        var tenantClaim = httpContext.User.FindFirstValue(TenancyConstants.TenantClaimName)?.Trim();
+        var tenantHeader = httpContext.Request.Headers[TenancyConstants.TenantHeaderName].ToString().Trim();
+        var tenantId = !string.IsNullOrWhiteSpace(tenantClaim) ? tenantClaim : tenantHeader;
+
+        if (string.IsNullOrWhiteSpace(tenantId))
+            throw new RpcException(new Status(StatusCode.InvalidArgument, $"Missing required header '{TenancyConstants.TenantHeaderName}'."));
+
+        var userId = httpContext.User.FindFirstValue(ClaimTypes.NameIdentifier)
+                     ?? httpContext.User.FindFirstValue("sub")
+                     ?? "grpc-system";
+
+        tenantContextAccessor.SetCurrent(new TenantContext(tenantId, userId, [], []));
     }
 
     private static RpcException NotFound(string message)

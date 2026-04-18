@@ -47,6 +47,7 @@ public partial class Program
     public static void ConfigurePipeline(WebApplication app)
     {
         app.UseExceptionHandler();
+        app.UseSlogtryRequestObservability();
 
         if (app.Environment.IsDevelopment())
         {
@@ -56,7 +57,7 @@ public partial class Program
 
         app.UseCors("SlogtryCorsPolicy");
         app.UseAuthentication();
-        app.UseTenantValidation();
+        app.UseSlogtryTenantValidation();
         app.UseAuthorization();
         app.RegisterApis();
         app.MapGrpcService<UserAccessGrpcService>().RequireAuthorization([SecurityConstants.ApiAccessPolicy]);

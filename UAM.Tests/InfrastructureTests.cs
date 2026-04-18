@@ -17,7 +17,7 @@ public class HttpContextTenantProviderTests
         var accessor = new TenantContextAccessor();
         accessor.SetCurrent(new TenantContext("tenant-a", "user-1", [], []));
 
-        var provider = new HttpContextTenantProvider(accessor);
+        var provider = new HttpContextTenantProvider(accessor, new HttpContextAccessor());
 
         provider.GetRequiredTenantId().Should().Be("tenant-a");
     }
@@ -27,7 +27,7 @@ public class HttpContextTenantProviderTests
     {
         var accessor = new TenantContextAccessor();
 
-        var provider = new HttpContextTenantProvider(accessor);
+        var provider = new HttpContextTenantProvider(accessor, new HttpContextAccessor());
 
         Action act = () => provider.GetRequiredTenantId();
 
