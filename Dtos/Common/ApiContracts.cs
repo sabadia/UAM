@@ -1,5 +1,7 @@
 namespace UAM.Dtos.Common;
 
+using Slogtry.Abstractions;
+
 public enum SortDirection
 {
     Asc,
@@ -33,9 +35,9 @@ public sealed record OffsetPaginationQuery(
     string? SortBy = null,
     string SortDirection = "desc")
 {
-    public int NormalizedOffset => Offset < 0 ? 0 : Offset;
+    public int NormalizedOffset => PaginationDefaults.Normalize(Offset, Limit).offset;
 
-    public int NormalizedLimit => Limit <= 0 ? 20 : Math.Min(Limit, 100);
+    public int NormalizedLimit => PaginationDefaults.Normalize(Offset, Limit).limit;
 
     public string? NormalizedSearch => string.IsNullOrWhiteSpace(Search) ? null : Search.Trim();
 

@@ -12,33 +12,27 @@ namespace UAM.Tests;
 public class HttpContextTenantProviderTests
 {
     [Fact]
-    public void GetRequiredTenantId_ReturnsTrimmedHeaderValue()
+    public void GetRequiredTenantId_ReturnsTenantIdFromContext()
     {
-        var httpContextAccessor = new HttpContextAccessor
-        {
-            HttpContext = new DefaultHttpContext()
-        };
-        httpContextAccessor.HttpContext!.Request.Headers["X-Tenant-Id"] = " tenant-a ";
+        var accessor = new TenantContextAccessor();
+        accessor.SetCurrent(new TenantContext("tenant-a", "user-1", [], []));
 
-        var provider = new HttpContextTenantProvider(httpContextAccessor, new TenantContextAccessor());
+        var provider = new HttpContextTenantProvider(accessor);
 
         provider.GetRequiredTenantId().Should().Be("tenant-a");
     }
 
     [Fact]
-    public void GetRequiredTenantId_ThrowsWhenHeaderIsMissing()
+    public void GetRequiredTenantId_ThrowsWhenContextNotSet()
     {
-        var httpContextAccessor = new HttpContextAccessor
-        {
-            HttpContext = new DefaultHttpContext()
-        };
+        var accessor = new TenantContextAccessor();
 
-        var provider = new HttpContextTenantProvider(httpContextAccessor, new TenantContextAccessor());
+        var provider = new HttpContextTenantProvider(accessor);
 
         Action act = () => provider.GetRequiredTenantId();
 
         act.Should().Throw<InvalidOperationException>()
-            .WithMessage("*X-Tenant-Id*");
+            .WithMessage("*Tenant context*");
     }
 }
 

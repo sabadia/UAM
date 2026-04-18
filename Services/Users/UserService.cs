@@ -1,6 +1,7 @@
 using System.Security.Claims;
 using System.Linq.Expressions;
 using Microsoft.EntityFrameworkCore;
+using Slogtry.Abstractions;
 using UAM.Context;
 using UAM.Dtos.Common;
 using UAM.Dtos.Users;
@@ -83,7 +84,7 @@ public sealed class UserService(
             DisplayName = displayName,
             FirstName = NormalizeOptional(request.FirstName),
             LastName = NormalizeOptional(request.LastName),
-            PhoneNumber = NormalizeOptional(request.PhoneNumber),
+            PhoneNumber = NormalizeOptionalPhone(request.PhoneNumber),
             IsActive = request.IsActive,
             CreatedBy = CurrentActor,
             UpdatedBy = CurrentActor
@@ -109,7 +110,7 @@ public sealed class UserService(
         user.DisplayName = displayName;
         user.FirstName = NormalizeOptional(request.FirstName);
         user.LastName = NormalizeOptional(request.LastName);
-        user.PhoneNumber = NormalizeOptional(request.PhoneNumber);
+        user.PhoneNumber = NormalizeOptionalPhone(request.PhoneNumber);
         user.UpdatedBy = CurrentActor;
 
         if (request.Preferences is not null)
@@ -141,7 +142,7 @@ public sealed class UserService(
             user.LastName = NormalizeOptional(request.LastName);
 
         if (request.PhoneNumber is not null)
-            user.PhoneNumber = NormalizeOptional(request.PhoneNumber);
+            user.PhoneNumber = NormalizeOptionalPhone(request.PhoneNumber);
 
         if (request.Preferences is not null)
             ApplyPreferencesPatch(user, request.Preferences);
@@ -220,7 +221,7 @@ public sealed class UserService(
         user.DisplayName = displayName;
         user.FirstName = NormalizeOptional(request.FirstName);
         user.LastName = NormalizeOptional(request.LastName);
-        user.PhoneNumber = NormalizeOptional(request.PhoneNumber);
+        user.PhoneNumber = NormalizeOptionalPhone(request.PhoneNumber);
         user.UpdatedBy = CurrentActor;
 
         if (request.Preferences is not null)
@@ -387,8 +388,16 @@ public sealed class UserService(
     private static void ApplyPreferences(UserProfile user, UserPreferencesRequest? request)
     {
         var normalized = request ?? new UserPreferencesRequest();
-        user.PreferencesLanguage = NormalizeRequired(normalized.Language, nameof(normalized.Language)).ToLowerInvariant();
-        user.PreferencesTimeZone = NormalizeRequired(normalized.TimeZone, nameof(normalized.TimeZone));
+        var language = NormalizeRequired(normalized.Language, nameof(normalized.Language)).ToLowerInvariant();
+        if (language.Length != 2 && language.Length != 5)
+            throw new InvalidOperationException("Language must be a valid ISO 639-1 code (e.g., 'en' or 'en-US').");
+
+        var timeZone = NormalizeRequired(normalized.TimeZone, nameof(normalized.TimeZone));
+        try { TimeZoneInfo.FindSystemTimeZoneById(timeZone); }
+        catch (TimeZoneNotFoundException) { throw new InvalidOperationException("Invalid TimeZone ID."); }
+
+        user.PreferencesLanguage = language;
+        user.PreferencesTimeZone = timeZone;
         user.PreferencesTheme = ToModelTheme(normalized.Theme);
         user.PreferencesEmailNotificationsEnabled = normalized.EmailNotificationsEnabled;
         user.PreferencesSmsNotificationsEnabled = normalized.SmsNotificationsEnabled;
@@ -397,10 +406,20 @@ public sealed class UserService(
     private static void ApplyPreferencesPatch(UserProfile user, UserPreferencesPatchRequest request)
     {
         if (request.Language is not null)
-            user.PreferencesLanguage = NormalizeRequired(request.Language, nameof(request.Language)).ToLowerInvariant();
+        {
+            var language = NormalizeRequired(request.Language, nameof(request.Language)).ToLowerInvariant();
+            if (language.Length != 2 && language.Length != 5)
+                throw new InvalidOperationException("Language must be a valid ISO 639-1 code (e.g., 'en' or 'en-US').");
+            user.PreferencesLanguage = language;
+        }
 
         if (request.TimeZone is not null)
-            user.PreferencesTimeZone = NormalizeRequired(request.TimeZone, nameof(request.TimeZone));
+        {
+            var timeZone = NormalizeRequired(request.TimeZone, nameof(request.TimeZone));
+            try { TimeZoneInfo.FindSystemTimeZoneById(timeZone); }
+            catch (TimeZoneNotFoundException) { throw new InvalidOperationException("Invalid TimeZone ID."); }
+            user.PreferencesTimeZone = timeZone;
+        }
 
         if (request.Theme is not null)
             user.PreferencesTheme = ToModelTheme(request.Theme.Value);
@@ -424,7 +443,7 @@ public sealed class UserService(
     private static string NormalizeEmail(string? value)
     {
         var normalized = NormalizeRequired(value, "email").ToLowerInvariant();
-        if (!normalized.Contains('@'))
+        if (!EmailValidator.IsValid(normalized))
             throw new InvalidOperationException("email must be a valid email address.");
 
         return normalized;
@@ -434,6 +453,17 @@ public sealed class UserService(
     {
         var normalized = value?.Trim();
         return string.IsNullOrWhiteSpace(normalized) ? null : normalized;
+    }
+
+    private static string? NormalizeOptionalPhone(string? value)
+    {
+        var normalized = NormalizeOptional(value);
+        if (normalized is not null)
+        {
+            if (!normalized.StartsWith('+') || !normalized.Skip(1).All(char.IsDigit) || normalized.Length > 16)
+                throw new InvalidOperationException("Phone number must be in E.164 format (e.g., +1234567890).");
+        }
+        return normalized;
     }
 
     private string CurrentActor => string.IsNullOrWhiteSpace(tenantContextAccessor.Current?.UserId) ? SystemUser : tenantContextAccessor.Current!.UserId;

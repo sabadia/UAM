@@ -15,4 +15,5 @@ RUN dotnet publish Services/UAM/UAM.csproj -c Release -o /app/publish --no-self-
 FROM mcr.microsoft.com/dotnet/aspnet:10.0 AS runtime
 WORKDIR /app
 COPY --from=build /app/publish .
+USER app
 ENTRYPOINT ["dotnet", "UAM.dll"]

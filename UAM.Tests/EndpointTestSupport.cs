@@ -197,6 +197,11 @@ internal sealed class FakeTenantDirectoryClient : ITenantDirectoryClient
         return Task.FromResult(new TenantSigningKeyResult(id, true, true, publicKeyPem, string.Empty));
     }
 
+    public Task<TenantSigningKeyResult> GetTenantSigningKeyInternalAsync(string tenantId, string? keyId, CancellationToken cancellationToken)
+    {
+        return GetTenantSigningKeyAsync(tenantId, keyId, cancellationToken);
+    }
+
     public static SecurityKey GetTenantPrivateKey(string tenantId)
     {
         var (privateKey, _) = GetOrCreateTenantKeys(tenantId);
