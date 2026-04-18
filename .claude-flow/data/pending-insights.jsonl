@@ -1,0 +1,11 @@
+{"type":"edit","file":"/Users/mahamudul/work/dotnet/SlogtryServices/Services/UAM/UAM.csproj","timestamp":1776489056625,"sessionId":null}
+{"type":"edit","file":"/Users/mahamudul/work/dotnet/SlogtryServices/Services/UAM/AssemblyInfo.cs","timestamp":1776489059425,"sessionId":null}
+{"type":"edit","file":"/Users/mahamudul/work/dotnet/SlogtryServices/Services/UAM/Program.cs","timestamp":1776489065783,"sessionId":null}
+{"type":"edit","file":"/Users/mahamudul/work/dotnet/SlogtryServices/Services/UAM/Context/DbContext.cs","timestamp":1776489073222,"sessionId":null}
+{"type":"edit","file":"/Users/mahamudul/work/dotnet/SlogtryServices/Services/UAM/Bootstrap/TenancyExtensions.cs","timestamp":1776489076732,"sessionId":null}
+{"type":"edit","file":"/Users/mahamudul/work/dotnet/SlogtryServices/Services/UAM/Bootstrap/ApplicationPipelineExtensions.cs","timestamp":1776489080835,"sessionId":null}
+{"type":"edit","file":"/Users/mahamudul/work/dotnet/SlogtryServices/Services/UAM/Services/Users/UserService.cs","timestamp":1776489084419,"sessionId":null}
+{"type":"edit","file":"/Users/mahamudul/work/dotnet/SlogtryServices/Services/UAM/appsettings.json","timestamp":1776489088899,"sessionId":null}
+{"type":"edit","file":"/Users/mahamudul/work/dotnet/SlogtryServices/Services/UAM/UAM.Tests/UAM.Tests.csproj","timestamp":1776489094580,"sessionId":null}
+{"type":"edit","file":"/Users/mahamudul/work/dotnet/SlogtryServices/Services/UAM/UAM.Tests/EndpointTestSupport.cs","timestamp":1776489122803,"sessionId":null}
+{"type":"edit","file":"/Users/mahamudul/work/dotnet/SlogtryServices/Services/UAM/UAM.Tests/InfrastructureTests.cs","timestamp":1776489136741,"sessionId":null}

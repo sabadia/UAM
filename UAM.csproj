@@ -8,29 +8,10 @@
     </PropertyGroup>
 
     <ItemGroup>
-        <PackageReference Include="Google.Protobuf" Version="3.31.1" />
-        <PackageReference Include="Grpc.AspNetCore" Version="2.76.0" />
-        <PackageReference Include="Grpc.Net.ClientFactory" Version="2.76.0" />
-        <PackageReference Include="Grpc.Tools" Version="2.76.0">
-            <PrivateAssets>all</PrivateAssets>
-            <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
-        </PackageReference>
-        <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="10.0.5" />
-        <PackageReference Include="Microsoft.AspNetCore.Diagnostics.EntityFrameworkCore" Version="10.0.5" />
-        <PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="10.0.5" />
-        <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="10.0.5">
+        <PackageReference Include="Microsoft.EntityFrameworkCore.Design">
             <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
             <PrivateAssets>all</PrivateAssets>
         </PackageReference>
-        <PackageReference Include="NUlid" Version="1.7.3" />
-        <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="10.0.1" />
-        <PackageReference Include="Scalar.AspNetCore" Version="2.13.22" />
-    </ItemGroup>
-
-    <ItemGroup>
-        <Protobuf Include="Protos/tenant_directory.proto" GrpcServices="Client" />
-        <Protobuf Include="Protos/identity_access.proto" GrpcServices="Client" />
-        <Protobuf Include="Protos/user_access.proto" GrpcServices="Both" />
     </ItemGroup>
 
     <ItemGroup>
@@ -38,6 +19,13 @@
         <EmbeddedResource Remove="UAM.Tests/**" />
         <Content Remove="UAM.Tests/**" />
         <None Remove="UAM.Tests/**" />
+    </ItemGroup>
+
+    <ItemGroup>
+        <ProjectReference Include="../../src/Shared/Slogtry.ServiceDefaults/Slogtry.ServiceDefaults.csproj" />
+        <ProjectReference Include="../../src/Contracts/Slogtry.Contracts.Tenant/Slogtry.Contracts.Tenant.csproj" />
+        <ProjectReference Include="../../src/Contracts/Slogtry.Contracts.Identity/Slogtry.Contracts.Identity.csproj" />
+        <ProjectReference Include="../../src/Contracts/Slogtry.Contracts.User/Slogtry.Contracts.User.csproj" />
     </ItemGroup>
 
 </Project>

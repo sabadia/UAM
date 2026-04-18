@@ -14,8 +14,9 @@ using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
+using Slogtry.Abstractions;
+using Slogtry.Grpc;
 using UAM.Context;
-using UAM.Security;
 
 namespace UAM.Tests;
 
@@ -42,8 +43,8 @@ public sealed class TestWebApplicationFactory : IDisposable
             ["Security:Jwt:Issuer"] = TestJwtIssuer,
             ["Security:Jwt:Audience"] = TestJwtAudience,
             ["Security:Jwt:RequireHttpsMetadata"] = "false",
-            ["RemoteServices:TenantGrpcEndpoint"] = "https://localhost:7001",
-            ["RemoteServices:IdentityGrpcEndpoint"] = "https://localhost:7002"
+            ["RemoteServices:Tenant:GrpcEndpoint"] = "https://localhost:7001",
+            ["RemoteServices:Identity:GrpcEndpoint"] = "https://localhost:7002"
         });
 
         Program.ConfigureServices(builder);
@@ -185,13 +186,15 @@ internal sealed class FakeTenantDirectoryClient : ITenantDirectoryClient
     public Task<TenantSigningKeyResult> GetTenantSigningKeyAsync(string tenantId, string? keyId, CancellationToken cancellationToken)
     {
         var (_, publicKeyPem) = GetOrCreateTenantKeys(tenantId);
+        var id = keyId ?? tenantId;
+
         if (tenantId == "tenant-inactive")
-            return Task.FromResult(new TenantSigningKeyResult(true, false, publicKeyPem));
+            return Task.FromResult(new TenantSigningKeyResult(id, true, false, publicKeyPem, string.Empty));
 
         if (tenantId == "tenant-unknown")
-            return Task.FromResult(new TenantSigningKeyResult(false, false, publicKeyPem));
+            return Task.FromResult(new TenantSigningKeyResult(id, false, false, publicKeyPem, string.Empty));
 
-        return Task.FromResult(new TenantSigningKeyResult(true, true, publicKeyPem));
+        return Task.FromResult(new TenantSigningKeyResult(id, true, true, publicKeyPem, string.Empty));
     }
 
     public static SecurityKey GetTenantPrivateKey(string tenantId)
@@ -212,7 +215,7 @@ internal sealed class FakeTenantDirectoryClient : ITenantDirectoryClient
 
             var rsa = RSA.Create(2048);
             privateKey = new RsaSecurityKey(rsa);
-            publicKeyPem = rsa.ExportRSAPublicKeyPem();
+            publicKeyPem = rsa.ExportSubjectPublicKeyInfoPem();
             PrivateKeys[tenantId] = privateKey;
             PublicKeys[tenantId] = publicKeyPem;
             return (privateKey, publicKeyPem);

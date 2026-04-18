@@ -1,15 +1,15 @@
 using System.Security.Claims;
 using System.Text.RegularExpressions;
-using UAM.Context;
-using UAM.Security;
+using Slogtry.Abstractions;
+using Slogtry.Grpc;
 
-namespace UAM.Bootstrap;
+namespace UAM.Middleware;
 
-public static class TenancyExtensions
+public static class TenancyMiddleware
 {
     private static readonly Regex TenantIdPattern = new("^[a-zA-Z0-9][a-zA-Z0-9-]{1,63}$", RegexOptions.Compiled);
 
-    public static IApplicationBuilder UseTenantValidation(this IApplicationBuilder app)
+    public static IApplicationBuilder UseUamTenantValidation(this IApplicationBuilder app)
     {
         return app.Use(async (context, next) =>
         {

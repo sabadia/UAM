@@ -1,9 +1,10 @@
 using FluentAssertions;
 using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
+using Slogtry.Abstractions;
+using Slogtry.Infrastructure;
 using UAM.Context;
 using UAM.Models;
-using UAM.Security;
 using Xunit;
 
 namespace UAM.Tests;

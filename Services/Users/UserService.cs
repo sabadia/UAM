@@ -5,8 +5,6 @@ using UAM.Context;
 using UAM.Dtos.Common;
 using UAM.Dtos.Users;
 using UAM.Models;
-using UAM.Repositories;
-using UAM.Security;
 using UAM.Services.Common;
 
 namespace UAM.Services.Users;

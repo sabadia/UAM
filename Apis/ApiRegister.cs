@@ -1,5 +1,4 @@
 using UAM.Apis.Routes;
-using UAM.Security;
 
 namespace UAM.Apis;
 
