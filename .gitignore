@@ -81,3 +81,14 @@ mono_crash.*
 *.publishsettings
 *.swp
 *~
+
+# AI tooling runtime state (claude-flow, .claude)
+# Runtime patterns are also listed in .claude-flow/.gitignore
+.claude-flow/daemon-state.json
+.claude-flow/daemon.pid
+.claude-flow/metrics/
+.claude-flow/security/
+.claude-flow/sessions/
+.claude-flow/data/
+.claude-flow/logs/
+.claude-flow/neural/
