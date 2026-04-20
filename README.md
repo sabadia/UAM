@@ -1,48 +1,52 @@
-# UAM Microservice Template
+# UAM Service
 
-This directory contains a `dotnet new` template for a tenant-aware .NET 10 microservice.
+The UAM (User Account Management) service manages user profiles, preferences, and exposes a `UserAccess` gRPC service consumed by Identity, Slogtry, Storage, and EventNotification.
 
-## Included scaffold
+## Endpoints
 
-- ASP.NET Core Minimal API
-- Hosted gRPC server (`UserAccess`) and outbound gRPC clients
-- `X-Tenant-Id` + tenant JWT auth pipeline
-- Tenant and identity authorization through gRPC clients
-- EF Core + PostgreSQL DbContext with tenant/soft-delete query filters
-- UAM user module (`/api/v1/users`, `/api/v1/me`) with soft-delete + preferences
-- xUnit test project with in-memory test host and fake remote clients
+All routes are prefixed `/api/v1`.
 
-## Install template locally
+| Method | Route | Auth | Summary |
+|--------|-------|------|---------|
+| GET | `/users` | Bearer | List users (tenant-scoped) |
+| GET | `/users/{id}` | Bearer | Get user by ID |
+| POST | `/users` | Bearer | Create user profile |
+| PUT | `/users/{id}` | Bearer | Update user profile |
+| DELETE | `/users/{id}` | Bearer | Soft-delete user |
+| GET | `/me` | Bearer | Get current user's profile |
+| PUT | `/me` | Bearer | Update current user's profile |
+| GET | `/health/ready` | Anonymous | Health check |
 
-```bash
-dotnet new install /Users/mahamudul/work/dotnet/UAM.Template
+## gRPC Service
+
+**UserAccess** (`UAM.Grpc.Users.V1`) — exposes user lookup and access validation. Requires `ApiAccessPolicy` authorization on the gRPC endpoint.
+
+## Configuration
+
+```json
+{
+  "ConnectionStrings": {
+    "DefaultConnection": "Host=localhost;Port=5432;Database=uam;Username=postgres;Password=postgres"
+  },
+  "RemoteServices": {
+    "Tenant": { "GrpcEndpoint": "https://localhost:7134" },
+    "Identity": { "GrpcEndpoint": "https://localhost:7133" }
+  }
+}
 ```
 
-## Generate a new microservice
+## Local Setup
 
 ```bash
-dotnet new uam-ms --name CatalogService --output ./CatalogService
+dotnet user-secrets set "ConnectionStrings:DefaultConnection" "Host=localhost;Port=5432;Database=uam;Username=postgres;Password=postgres"
+dotnet ef database update --project Services/UAM
+dotnet run --project Services/UAM
 ```
 
-## Generated project setup
+Development ports: `http://localhost:5265` (HTTP) / `https://localhost:7135` (HTTPS).
+
+## Tests
 
 ```bash
-cd ./CatalogService
-dotnet user-secrets init
-dotnet user-secrets set "ConnectionStrings:DefaultConnection" "Host=localhost;Port=5432;Database=catalog;Username=postgres;Password=postgres"
-dotnet restore
-dotnet build
-dotnet test CatalogService.Tests/CatalogService.Tests.csproj
-dotnet run --project CatalogService.csproj
+dotnet test Services/UAM/UAM.Tests
 ```
-
-## Runtime notes
-
-- `GET /api/v1/health` is anonymous.
-- Other `/api/v1/*` routes require:
-  - `Authorization: Bearer <jwt>`
-  - `X-Tenant-Id`
-- User API routes are available under:
-  - `/api/v1/users`
-  - `/api/v1/me`
-- JWT signing keys and tenant access checks are resolved via gRPC endpoints configured under `RemoteServices`.
