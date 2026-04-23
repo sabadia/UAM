@@ -1,3 +1,4 @@
+using Slogtry.Api;
 using UAM.Apis.Routes;
 
 namespace UAM.Apis;
@@ -6,7 +7,7 @@ public static class ApiRegister
 {
     public static WebApplication RegisterApis(this WebApplication app)
     {
-        var api = app.MapGroup("/api/v1")
+        var api = app.MapVersionedApi()
             .WithSummary("API for UAM")
             .RequireAuthorization([SecurityConstants.ApiAccessPolicy]);
 

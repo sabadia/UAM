@@ -56,6 +56,7 @@ public partial class Program
         }
 
         app.UseCors("SlogtryCorsPolicy");
+        app.UseRateLimiter();
         app.UseAuthentication();
         app.UseSlogtryTenantValidation();
         app.UseAuthorization();

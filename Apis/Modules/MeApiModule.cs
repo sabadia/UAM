@@ -8,7 +8,7 @@ public sealed class MeApiModule : IApiModule
 {
     public void MapEndpoints(IEndpointRouteBuilder app)
     {
-        app.MapGroup("/api/v1")
+        app.MapVersionedApi()
             .WithTags("Users")
             .WithSummary("Current user API")
             .RequireAuthorization(SecurityConstants.ApiAccessPolicy)

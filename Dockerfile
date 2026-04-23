@@ -16,4 +16,6 @@ FROM mcr.microsoft.com/dotnet/aspnet:10.0 AS runtime
 WORKDIR /app
 COPY --from=build /app/publish .
 USER app
+HEALTHCHECK --interval=30s --timeout=5s --start-period=15s --retries=3 \
+    CMD bash -c '< /dev/tcp/localhost/8080' || exit 1
 ENTRYPOINT ["dotnet", "UAM.dll"]
