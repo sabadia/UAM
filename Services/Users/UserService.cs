@@ -47,6 +47,7 @@ public interface IUserService
     Task<UserResponse?> UpdateMeAsync(UserActor actor, UserMeUpdateRequest request, CancellationToken cancellationToken);
     Task<IReadOnlyList<UserResponse>> BatchGetAsync(IReadOnlyCollection<string> ids, bool includeDeleted, CancellationToken cancellationToken);
     Task<UserProfileSummaryResponse?> GetProfileSummaryAsync(string id, CancellationToken cancellationToken);
+    Task<(UserResponse? result, string? validationError)> PatchMeAsync(UserActor actor, UserMeUpdatePatchRequest request, CancellationToken cancellationToken);
 }
 
 public sealed class UserService(
@@ -231,6 +232,64 @@ public sealed class UserService(
         return await GetAsync(user.Id, false, cancellationToken);
     }
 
+    public async Task<(UserResponse? result, string? validationError)> PatchMeAsync(UserActor actor, UserMeUpdatePatchRequest request, CancellationToken cancellationToken)
+    {
+        var user = await FindCurrentUserAsync(actor, includeDeleted: false, cancellationToken);
+        if (user is null) return (null, null);
+
+        if (request.Handle is not null)
+        {
+            var normalized = request.Handle.Trim().ToLowerInvariant();
+            if (!System.Text.RegularExpressions.Regex.IsMatch(normalized, @"^[a-z0-9_]{3,30}$"))
+                return (null, "Handle must be 3–30 chars: lowercase, digits, underscores.");
+            user.Handle = normalized;
+        }
+
+        if (request.Email is not null)
+        {
+            var email = NormalizeEmail(request.Email);
+            await EnsureUniqueEmailAsync(email, user.Id, cancellationToken);
+            user.Email = email;
+        }
+
+        if (request.DisplayName is not null)
+            user.DisplayName = NormalizeRequired(request.DisplayName, nameof(request.DisplayName));
+
+        if (request.FirstName is not null)
+            user.FirstName = NormalizeOptional(request.FirstName);
+
+        if (request.LastName is not null)
+            user.LastName = NormalizeOptional(request.LastName);
+
+        if (request.PhoneNumber is not null)
+            user.PhoneNumber = NormalizeOptionalPhone(request.PhoneNumber);
+
+        if (request.Bio is not null)
+            user.Bio = request.Bio;
+
+        if (request.Website is not null)
+            user.Website = request.Website;
+
+        if (request.AvatarFileId is not null)
+            user.AvatarFileId = request.AvatarFileId;
+
+        if (request.CoverFileId is not null)
+            user.CoverFileId = request.CoverFileId;
+
+        if (request.LinksJson is not null)
+            user.LinksJson = request.LinksJson;
+
+        if (request.PronounsJson is not null)
+            user.PronounsJson = request.PronounsJson;
+
+        if (request.Preferences is not null)
+            ApplyPreferencesPatch(user, request.Preferences);
+
+        user.UpdatedBy = CurrentActor;
+        await context.SaveChangesAsync(cancellationToken);
+        return (await GetAsync(user.Id, false, cancellationToken), null);
+    }
+
     public async Task<IReadOnlyList<UserResponse>> BatchGetAsync(IReadOnlyCollection<string> ids, bool includeDeleted, CancellationToken cancellationToken)
     {
         if (ids.Count == 0) return [];
@@ -296,7 +355,16 @@ public sealed class UserService(
             entity.CreatedAt,
             entity.UpdatedAt,
             entity.CreatedBy,
-            entity.UpdatedBy);
+            entity.UpdatedBy,
+            entity.Handle,
+            entity.Bio,
+            entity.AvatarFileId,
+            entity.CoverFileId,
+            entity.Website,
+            entity.LinksJson,
+            entity.PronounsJson,
+            entity.IsVerified,
+            entity.VerifiedBadgeKind);
     }
 
     private static UserResponse MapResponse(UserProfile entity)
@@ -318,7 +386,16 @@ public sealed class UserService(
             entity.CreatedAt,
             entity.UpdatedAt,
             entity.CreatedBy,
-            entity.UpdatedBy);
+            entity.UpdatedBy,
+            entity.Handle,
+            entity.Bio,
+            entity.AvatarFileId,
+            entity.CoverFileId,
+            entity.Website,
+            entity.LinksJson,
+            entity.PronounsJson,
+            entity.IsVerified,
+            entity.VerifiedBadgeKind);
     }
 
     private static UserPreferencesResponse MapPreferences(UserProfile entity)

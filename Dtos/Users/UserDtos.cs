@@ -69,6 +69,21 @@ public sealed record UserMeUpdateRequest(
     string? PhoneNumber = null,
     UserPreferencesRequest? Preferences = null);
 
+public sealed record UserMeUpdatePatchRequest(
+    string? Email = null,
+    string? DisplayName = null,
+    string? FirstName = null,
+    string? LastName = null,
+    string? PhoneNumber = null,
+    string? Handle = null,
+    string? Bio = null,
+    string? Website = null,
+    string? AvatarFileId = null,
+    string? CoverFileId = null,
+    string? LinksJson = null,
+    string? PronounsJson = null,
+    UserPreferencesPatchRequest? Preferences = null);
+
 public sealed record UserPreferencesResponse(
     string Language,
     string TimeZone,
@@ -93,7 +108,16 @@ public sealed record UserResponse(
     DateTimeOffset CreatedAt,
     DateTimeOffset UpdatedAt,
     string CreatedBy,
-    string UpdatedBy);
+    string UpdatedBy,
+    string? Handle = null,
+    string? Bio = null,
+    string? AvatarFileId = null,
+    string? CoverFileId = null,
+    string? Website = null,
+    string? LinksJson = null,
+    string? PronounsJson = null,
+    bool IsVerified = false,
+    string? VerifiedBadgeKind = null);
 
 public sealed record UserProfileSummaryResponse(
     string Id,

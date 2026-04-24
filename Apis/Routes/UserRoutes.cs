@@ -28,6 +28,7 @@ public static class UserRoutes
     {
         route.MapGet("/me", GetMe).WithName("Users_GetMe").WithSummary("Get current user profile");
         route.MapPut("/me", PutMe).WithName("Users_PutMe").WithSummary("Update current user profile");
+        route.MapPatch("/me", PatchMe).WithName("Users_PatchMe").WithSummary("Patch current user profile");
         return route;
     }
 
@@ -141,5 +142,20 @@ public static class UserRoutes
         CancellationToken cancellationToken)
     {
         return await RouteExecution.QueryMaybe(() => service.UpdateMeAsync(UserActorResolver.Resolve(principal), request, cancellationToken), "Profile updated");
+    }
+
+    private static async Task<Results<Ok<ApiResponse<UserResponse>>, NotFound, BadRequest<ApiResponse<UserResponse>>>> PatchMe(
+        ClaimsPrincipal principal,
+        UserMeUpdatePatchRequest request,
+        IUserService service,
+        CancellationToken cancellationToken)
+    {
+        var actor = UserActorResolver.Resolve(principal);
+        var (result, validationError) = await service.PatchMeAsync(actor, request, cancellationToken);
+        if (validationError is not null)
+            return TypedResults.BadRequest(ApiResponse<UserResponse>.Fail(validationError));
+        return result is null
+            ? TypedResults.NotFound()
+            : RouteResults.Ok(result, "Profile updated");
     }
 }
