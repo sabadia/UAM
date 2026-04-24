@@ -24,4 +24,15 @@ public sealed class UserProfile : BaseModel
     public UserThemePreference PreferencesTheme { get; set; } = UserThemePreference.System;
     public bool PreferencesEmailNotificationsEnabled { get; set; } = true;
     public bool PreferencesSmsNotificationsEnabled { get; set; }
+
+    // Social profile extensions (Phase 1)
+    public string? Handle { get; set; }
+    public string? Bio { get; set; }
+    public string? AvatarFileId { get; set; }
+    public string? CoverFileId { get; set; }
+    public string? Website { get; set; }
+    public string? LinksJson { get; set; }
+    public string? PronounsJson { get; set; }
+    public bool IsVerified { get; set; }
+    public string? VerifiedBadgeKind { get; set; }
 }

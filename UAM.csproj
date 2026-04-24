@@ -26,6 +26,7 @@
         <ProjectReference Include="../../src/Contracts/Slogtry.Contracts.Tenant/Slogtry.Contracts.Tenant.csproj" />
         <ProjectReference Include="../../src/Contracts/Slogtry.Contracts.Identity/Slogtry.Contracts.Identity.csproj" />
         <ProjectReference Include="../../src/Contracts/Slogtry.Contracts.User/Slogtry.Contracts.User.csproj" />
+        <ProjectReference Include="../../src/Shared/Slogtry.Events/Slogtry.Events.csproj" />
     </ItemGroup>
 
 </Project>
