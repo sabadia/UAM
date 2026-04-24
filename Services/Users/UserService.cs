@@ -2,6 +2,8 @@ using System.Security.Claims;
 using System.Linq.Expressions;
 using Microsoft.EntityFrameworkCore;
 using Slogtry.Abstractions;
+using Slogtry.Contracts.Events.User.V1;
+using Slogtry.Events.Abstractions;
 using UAM.Context;
 using UAM.Dtos.Common;
 using UAM.Dtos.Users;
@@ -47,12 +49,15 @@ public interface IUserService
     Task<UserResponse?> UpdateMeAsync(UserActor actor, UserMeUpdateRequest request, CancellationToken cancellationToken);
     Task<IReadOnlyList<UserResponse>> BatchGetAsync(IReadOnlyCollection<string> ids, bool includeDeleted, CancellationToken cancellationToken);
     Task<UserProfileSummaryResponse?> GetProfileSummaryAsync(string id, CancellationToken cancellationToken);
-    Task<(UserResponse? result, string? validationError)> PatchMeAsync(UserActor actor, UserMeUpdatePatchRequest request, CancellationToken cancellationToken);
+    Task<UserResponse?> PatchMeAsync(UserActor actor, UserMeUpdatePatchRequest request, CancellationToken cancellationToken);
+    Task<UserPrivacySettingsResponse?> GetMyPrivacyAsync(UserActor actor, CancellationToken cancellationToken);
+    Task<UserPrivacySettingsResponse?> PatchMyPrivacyAsync(UserActor actor, UserPrivacySettingsPatchRequest request, CancellationToken cancellationToken);
 }
 
 public sealed class UserService(
     AppDbContext context,
     IRepository<UserProfile> repository,
+    IEventPublisher eventPublisher,
     ITenantContextAccessor tenantContextAccessor) : IUserService
 {
     private const string SystemUser = "system";
@@ -228,20 +233,21 @@ public sealed class UserService(
         if (request.Preferences is not null)
             ApplyPreferences(user, request.Preferences);
 
+        await PublishUserProfileUpdatedAsync(user, cancellationToken);
         await context.SaveChangesAsync(cancellationToken);
         return await GetAsync(user.Id, false, cancellationToken);
     }
 
-    public async Task<(UserResponse? result, string? validationError)> PatchMeAsync(UserActor actor, UserMeUpdatePatchRequest request, CancellationToken cancellationToken)
+    public async Task<UserResponse?> PatchMeAsync(UserActor actor, UserMeUpdatePatchRequest request, CancellationToken cancellationToken)
     {
         var user = await FindCurrentUserAsync(actor, includeDeleted: false, cancellationToken);
-        if (user is null) return (null, null);
+        if (user is null) return null;
 
         if (request.Handle is not null)
         {
             var normalized = request.Handle.Trim().ToLowerInvariant();
             if (!System.Text.RegularExpressions.Regex.IsMatch(normalized, @"^[a-z0-9_]{3,30}$"))
-                return (null, "Handle must be 3–30 chars: lowercase, digits, underscores.");
+                throw new InvalidOperationException("Handle must be 3–30 chars: lowercase, digits, underscores.");
             user.Handle = normalized;
         }
 
@@ -256,38 +262,151 @@ public sealed class UserService(
             user.DisplayName = NormalizeRequired(request.DisplayName, nameof(request.DisplayName));
 
         if (request.FirstName is not null)
-            user.FirstName = NormalizeOptional(request.FirstName);
+            user.FirstName = NormalizeOptionalWithMaxLength(request.FirstName, nameof(request.FirstName), 128);
 
         if (request.LastName is not null)
-            user.LastName = NormalizeOptional(request.LastName);
+            user.LastName = NormalizeOptionalWithMaxLength(request.LastName, nameof(request.LastName), 128);
 
         if (request.PhoneNumber is not null)
             user.PhoneNumber = NormalizeOptionalPhone(request.PhoneNumber);
 
         if (request.Bio is not null)
-            user.Bio = request.Bio;
+            user.Bio = NormalizeOptionalWithMaxLength(request.Bio, nameof(request.Bio), 500);
 
         if (request.Website is not null)
-            user.Website = request.Website;
+            user.Website = NormalizeOptionalWithMaxLength(request.Website, nameof(request.Website), 2048);
 
         if (request.AvatarFileId is not null)
-            user.AvatarFileId = request.AvatarFileId;
+            user.AvatarFileId = NormalizeOptionalWithExactLength(request.AvatarFileId, nameof(request.AvatarFileId), 26);
 
         if (request.CoverFileId is not null)
-            user.CoverFileId = request.CoverFileId;
+            user.CoverFileId = NormalizeOptionalWithExactLength(request.CoverFileId, nameof(request.CoverFileId), 26);
 
         if (request.LinksJson is not null)
-            user.LinksJson = request.LinksJson;
+            user.LinksJson = NormalizeOptional(request.LinksJson);
 
         if (request.PronounsJson is not null)
-            user.PronounsJson = request.PronounsJson;
+            user.PronounsJson = NormalizeOptional(request.PronounsJson);
 
         if (request.Preferences is not null)
             ApplyPreferencesPatch(user, request.Preferences);
 
         user.UpdatedBy = CurrentActor;
+        await PublishUserProfileUpdatedAsync(user, cancellationToken);
         await context.SaveChangesAsync(cancellationToken);
-        return (await GetAsync(user.Id, false, cancellationToken), null);
+        return await GetAsync(user.Id, false, cancellationToken);
+    }
+
+    public async Task<UserPrivacySettingsResponse?> GetMyPrivacyAsync(UserActor actor, CancellationToken cancellationToken)
+    {
+        var user = await FindCurrentUserAsync(actor, includeDeleted: false, cancellationToken);
+        if (user is null) return null;
+
+        var privacy = await GetOrCreatePrivacySettingsAsync(user, cancellationToken);
+        return MapPrivacyResponse(privacy);
+    }
+
+    public async Task<UserPrivacySettingsResponse?> PatchMyPrivacyAsync(UserActor actor, UserPrivacySettingsPatchRequest request, CancellationToken cancellationToken)
+    {
+        var user = await FindCurrentUserAsync(actor, includeDeleted: false, cancellationToken);
+        if (user is null) return null;
+
+        var privacy = await GetOrCreatePrivacySettingsAsync(user, cancellationToken);
+
+        if (request.ProfileVisibility is not null)
+            privacy.ProfileVisibility = ToModelVisibility(request.ProfileVisibility.Value);
+
+        if (request.WhoCanMessage is not null)
+            privacy.WhoCanMessage = ToModelVisibility(request.WhoCanMessage.Value);
+
+        if (request.WhoCanMention is not null)
+            privacy.WhoCanMention = ToModelVisibility(request.WhoCanMention.Value);
+
+        if (request.AllowIndexing is not null)
+            privacy.AllowIndexing = request.AllowIndexing.Value;
+
+        if (request.AllowNsfwInFeed is not null)
+            privacy.AllowNsfwInFeed = request.AllowNsfwInFeed.Value;
+
+        privacy.UpdatedBy = CurrentActor;
+        await context.SaveChangesAsync(cancellationToken);
+        return MapPrivacyResponse(privacy);
+    }
+
+    private async Task<UserPrivacySettings> GetOrCreatePrivacySettingsAsync(UserProfile user, CancellationToken cancellationToken)
+    {
+        var privacy = await context.PrivacySettings
+            .FirstOrDefaultAsync(entity => entity.UserProfileId == user.Id, cancellationToken);
+
+        if (privacy is not null)
+            return privacy;
+
+        privacy = new UserPrivacySettings
+        {
+            UserProfileId = user.Id,
+            CreatedBy = CurrentActor,
+            UpdatedBy = CurrentActor
+        };
+
+        await context.PrivacySettings.AddAsync(privacy, cancellationToken);
+        await context.SaveChangesAsync(cancellationToken);
+        return privacy;
+    }
+
+    private async Task PublishUserProfileUpdatedAsync(UserProfile user, CancellationToken cancellationToken)
+    {
+        var payload = new UserProfileUpdatedV1
+        {
+            UserId = user.Id,
+            DisplayName = user.DisplayName ?? string.Empty,
+            Bio = user.Bio ?? string.Empty,
+            Handle = user.Handle ?? string.Empty,
+            AvatarFileId = user.AvatarFileId ?? string.Empty,
+            CoverFileId = user.CoverFileId ?? string.Empty,
+            Website = user.Website ?? string.Empty
+        };
+
+        await eventPublisher.PublishAsync(new ProfileUpdatedEvent(payload), cancellationToken);
+    }
+
+    private static UserPrivacySettingsResponse MapPrivacyResponse(UserPrivacySettings entity)
+    {
+        return new UserPrivacySettingsResponse(
+            entity.UserProfileId,
+            ToDtoVisibility(entity.ProfileVisibility),
+            ToDtoVisibility(entity.WhoCanMessage),
+            ToDtoVisibility(entity.WhoCanMention),
+            entity.AllowIndexing,
+            entity.AllowNsfwInFeed);
+    }
+
+    private static VisibilityLevel ToModelVisibility(PrivacyVisibilityLevel visibility)
+    {
+        return visibility switch
+        {
+            PrivacyVisibilityLevel.Everyone => VisibilityLevel.Everyone,
+            PrivacyVisibilityLevel.Followers => VisibilityLevel.Followers,
+            PrivacyVisibilityLevel.Nobody => VisibilityLevel.Nobody,
+            _ => throw new InvalidOperationException("Unsupported visibility level.")
+        };
+    }
+
+    private static PrivacyVisibilityLevel ToDtoVisibility(VisibilityLevel visibility)
+    {
+        return visibility switch
+        {
+            VisibilityLevel.Everyone => PrivacyVisibilityLevel.Everyone,
+            VisibilityLevel.Followers => PrivacyVisibilityLevel.Followers,
+            VisibilityLevel.Nobody => PrivacyVisibilityLevel.Nobody,
+            _ => throw new InvalidOperationException("Unsupported visibility level.")
+        };
+    }
+
+    private sealed record ProfileUpdatedEvent(UserProfileUpdatedV1 Payload) : IEvent
+    {
+        public string EventType => "user.profile.updated.v1";
+        public DateTimeOffset OccurredAt => DateTimeOffset.UtcNow;
+        public UserProfileUpdatedV1 Data => Payload;
     }
 
     public async Task<IReadOnlyList<UserResponse>> BatchGetAsync(IReadOnlyCollection<string> ids, bool includeDeleted, CancellationToken cancellationToken)
@@ -530,6 +649,24 @@ public sealed class UserService(
     {
         var normalized = value?.Trim();
         return string.IsNullOrWhiteSpace(normalized) ? null : normalized;
+    }
+
+    private static string? NormalizeOptionalWithMaxLength(string? value, string fieldName, int maxLength)
+    {
+        var normalized = NormalizeOptional(value);
+        if (normalized is not null && normalized.Length > maxLength)
+            throw new InvalidOperationException($"{fieldName} must be at most {maxLength} characters.");
+
+        return normalized;
+    }
+
+    private static string? NormalizeOptionalWithExactLength(string? value, string fieldName, int exactLength)
+    {
+        var normalized = NormalizeOptional(value);
+        if (normalized is not null && normalized.Length != exactLength)
+            throw new InvalidOperationException($"{fieldName} must be exactly {exactLength} characters.");
+
+        return normalized;
     }
 
     private static string? NormalizeOptionalPhone(string? value)

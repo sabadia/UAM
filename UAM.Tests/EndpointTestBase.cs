@@ -6,6 +6,7 @@ namespace UAM.Tests;
 
 public abstract class EndpointTestBase(TestWebApplicationFactory factory)
 {
+    protected TestWebApplicationFactory Factory { get; } = factory;
     protected HttpClient Client { get; } = factory.CreateClient();
 
     protected async Task<HttpResponseMessage> SendAsync(HttpMethod method, string uri, string tenantId, object? body = null)

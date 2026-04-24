@@ -15,6 +15,7 @@ using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Slogtry.Abstractions;
+using Slogtry.Events.Abstractions;
 using Slogtry.Grpc;
 using UAM.Context;
 
@@ -26,6 +27,8 @@ public sealed class TestWebApplicationFactory : IDisposable
     private const string TestJwtAudience = "uam-tests-clients";
     private readonly string _databaseName = $"uam-tests-{Guid.NewGuid():N}";
     private readonly WebApplication _app;
+
+    public FakeEventPublisher EventPublisher { get; } = new();
 
     public TestWebApplicationFactory()
     {
@@ -55,8 +58,10 @@ public sealed class TestWebApplicationFactory : IDisposable
         builder.Services.AddDbContext<AppDbContext>(options => options.UseInMemoryDatabase(_databaseName));
         builder.Services.RemoveAll<ITenantDirectoryClient>();
         builder.Services.RemoveAll<IIdentityAccessClient>();
+        builder.Services.RemoveAll<IEventPublisher>();
         builder.Services.AddScoped<ITenantDirectoryClient, FakeTenantDirectoryClient>();
         builder.Services.AddScoped<IIdentityAccessClient, FakeIdentityAccessClient>();
+        builder.Services.AddSingleton<IEventPublisher>(EventPublisher);
 
         _app = builder.Build();
         Program.ConfigurePipeline(_app);

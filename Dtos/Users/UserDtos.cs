@@ -9,6 +9,13 @@ public enum UserTheme
     Dark
 }
 
+public enum PrivacyVisibilityLevel
+{
+    Everyone,
+    Followers,
+    Nobody
+}
+
 public sealed record UserListQuery(
     int Offset = 0,
     int Limit = 20,
@@ -90,6 +97,21 @@ public sealed record UserPreferencesResponse(
     UserTheme Theme,
     bool EmailNotificationsEnabled,
     bool SmsNotificationsEnabled);
+
+public sealed record UserPrivacySettingsPatchRequest(
+    PrivacyVisibilityLevel? ProfileVisibility = null,
+    PrivacyVisibilityLevel? WhoCanMessage = null,
+    PrivacyVisibilityLevel? WhoCanMention = null,
+    bool? AllowIndexing = null,
+    bool? AllowNsfwInFeed = null);
+
+public sealed record UserPrivacySettingsResponse(
+    string UserProfileId,
+    PrivacyVisibilityLevel ProfileVisibility,
+    PrivacyVisibilityLevel WhoCanMessage,
+    PrivacyVisibilityLevel WhoCanMention,
+    bool AllowIndexing,
+    bool AllowNsfwInFeed);
 
 public sealed record UserResponse(
     string Id,

@@ -2,6 +2,8 @@ using Slogtry.Security;
 using Slogtry.ServiceDefaults;
 using Scalar.AspNetCore;
 using Slogtry.Events.Outbox;
+using Slogtry.Events.Abstractions;
+using Slogtry.Events.Kafka;
 using UAM.Apis;
 using UAM.Context;
 using UAM.Services.Users;
@@ -30,6 +32,7 @@ public partial class Program
         builder.AddSlogtryRedisCache();
         builder.AddSlogtryDatabase<AppDbContext>();
         builder.AddSlogtryRepositories();
+        builder.Services.AddSingleton<IEventSerializer, CloudEventJsonSerializer>();
         builder.AddSlogtryOutbox<AppDbContext>();
         builder.AddRemoteGrpcClient<
             Tenant.Grpc.Tenancy.V1.TenantDirectory.TenantDirectoryClient,

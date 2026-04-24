@@ -29,6 +29,8 @@ public static class UserRoutes
         route.MapGet("/me", GetMe).WithName("Users_GetMe").WithSummary("Get current user profile");
         route.MapPut("/me", PutMe).WithName("Users_PutMe").WithSummary("Update current user profile");
         route.MapPatch("/me", PatchMe).WithName("Users_PatchMe").WithSummary("Patch current user profile");
+        route.MapGet("/me/privacy", GetMePrivacy).WithName("Users_GetMePrivacy").WithSummary("Get current user privacy settings");
+        route.MapPatch("/me/privacy", PatchMePrivacy).WithName("Users_PatchMePrivacy").WithSummary("Patch current user privacy settings");
         return route;
     }
 
@@ -150,12 +152,27 @@ public static class UserRoutes
         IUserService service,
         CancellationToken cancellationToken)
     {
-        var actor = UserActorResolver.Resolve(principal);
-        var (result, validationError) = await service.PatchMeAsync(actor, request, cancellationToken);
-        if (validationError is not null)
-            return TypedResults.BadRequest(ApiResponse<UserResponse>.Fail(validationError));
-        return result is null
-            ? TypedResults.NotFound()
-            : RouteResults.Ok(result, "Profile updated");
+        return await RouteExecution.QueryMaybe(
+            () => service.PatchMeAsync(UserActorResolver.Resolve(principal), request, cancellationToken),
+            "Profile updated");
+    }
+
+    private static async Task<Results<Ok<ApiResponse<UserPrivacySettingsResponse>>, NotFound, BadRequest<ApiResponse<UserPrivacySettingsResponse>>>> GetMePrivacy(
+        ClaimsPrincipal principal,
+        IUserService service,
+        CancellationToken cancellationToken)
+    {
+        return await RouteExecution.QueryMaybe(() => service.GetMyPrivacyAsync(UserActorResolver.Resolve(principal), cancellationToken));
+    }
+
+    private static async Task<Results<Ok<ApiResponse<UserPrivacySettingsResponse>>, NotFound, BadRequest<ApiResponse<UserPrivacySettingsResponse>>>> PatchMePrivacy(
+        ClaimsPrincipal principal,
+        UserPrivacySettingsPatchRequest request,
+        IUserService service,
+        CancellationToken cancellationToken)
+    {
+        return await RouteExecution.QueryMaybe(
+            () => service.PatchMyPrivacyAsync(UserActorResolver.Resolve(principal), request, cancellationToken),
+            "Privacy settings updated");
     }
 }
