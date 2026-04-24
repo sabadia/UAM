@@ -1,5 +1,6 @@
 using System.Security.Claims;
 using System.Linq.Expressions;
+using Google.Protobuf.WellKnownTypes;
 using Microsoft.EntityFrameworkCore;
 using Slogtry.Abstractions;
 using Slogtry.Contracts.Events.User.V1;
@@ -52,6 +53,8 @@ public interface IUserService
     Task<UserResponse?> PatchMeAsync(UserActor actor, UserMeUpdatePatchRequest request, CancellationToken cancellationToken);
     Task<UserPrivacySettingsResponse?> GetMyPrivacyAsync(UserActor actor, CancellationToken cancellationToken);
     Task<UserPrivacySettingsResponse?> PatchMyPrivacyAsync(UserActor actor, UserPrivacySettingsPatchRequest request, CancellationToken cancellationToken);
+    Task<bool> DeleteMeAsync(UserActor actor, CancellationToken cancellationToken);
+    Task<bool> RequestExportMeAsync(UserActor actor, CancellationToken cancellationToken);
 }
 
 public sealed class UserService(
@@ -333,6 +336,43 @@ public sealed class UserService(
         return MapPrivacyResponse(privacy);
     }
 
+    public async Task<bool> DeleteMeAsync(UserActor actor, CancellationToken cancellationToken)
+    {
+        var user = await FindCurrentUserAsync(actor, includeDeleted: false, cancellationToken);
+        if (user is null) return false;
+
+        user.MarkDeleted(CurrentActor, DateTimeOffset.UtcNow);
+        user.UpdatedBy = CurrentActor;
+        await context.SaveChangesAsync(cancellationToken);
+
+        var tenantId = tenantContextAccessor.Current?.TenantId ?? string.Empty;
+        var deletedEvent = new UserDeletedV1
+        {
+            UserId = user.Id,
+            TenantId = tenantId,
+            DeletedAt = Timestamp.FromDateTime(DateTime.UtcNow)
+        };
+        await eventPublisher.PublishAsync(new UserDeletedEvent(deletedEvent), cancellationToken);
+
+        return true;
+    }
+
+    public async Task<bool> RequestExportMeAsync(UserActor actor, CancellationToken cancellationToken)
+    {
+        var user = await FindCurrentUserAsync(actor, includeDeleted: false, cancellationToken);
+        if (user is null) return false;
+
+        var tenantId = tenantContextAccessor.Current?.TenantId ?? string.Empty;
+        var exportEvent = new UserDataExportRequestedV1
+        {
+            UserId = user.Id,
+            TenantId = tenantId,
+            RequestedAt = Timestamp.FromDateTime(DateTime.UtcNow)
+        };
+        await eventPublisher.PublishAsync(new UserDataExportRequestedEvent(exportEvent), cancellationToken);
+        return true;
+    }
+
     private async Task<UserPrivacySettings> GetOrCreatePrivacySettingsAsync(UserProfile user, CancellationToken cancellationToken)
     {
         var privacy = await context.PrivacySettings
@@ -407,6 +447,20 @@ public sealed class UserService(
         public string EventType => "user.profile.updated.v1";
         public DateTimeOffset OccurredAt => DateTimeOffset.UtcNow;
         public UserProfileUpdatedV1 Data => Payload;
+    }
+
+    private sealed record UserDeletedEvent(UserDeletedV1 Payload) : IEvent
+    {
+        public string EventType => "user.deleted.v1";
+        public DateTimeOffset OccurredAt => DateTimeOffset.UtcNow;
+        public UserDeletedV1 Data => Payload;
+    }
+
+    private sealed record UserDataExportRequestedEvent(UserDataExportRequestedV1 Payload) : IEvent
+    {
+        public string EventType => "user.data_export_requested.v1";
+        public DateTimeOffset OccurredAt => DateTimeOffset.UtcNow;
+        public UserDataExportRequestedV1 Data => Payload;
     }
 
     public async Task<IReadOnlyList<UserResponse>> BatchGetAsync(IReadOnlyCollection<string> ids, bool includeDeleted, CancellationToken cancellationToken)

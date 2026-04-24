@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Http.HttpResults;
 using System.Security.Claims;
+using Slogtry.Events.Abstractions;
 using UAM.Dtos.Common;
 using UAM.Dtos.Users;
 using UAM.Services.Users;
@@ -31,6 +32,8 @@ public static class UserRoutes
         route.MapPatch("/me", PatchMe).WithName("Users_PatchMe").WithSummary("Patch current user profile");
         route.MapGet("/me/privacy", GetMePrivacy).WithName("Users_GetMePrivacy").WithSummary("Get current user privacy settings");
         route.MapPatch("/me/privacy", PatchMePrivacy).WithName("Users_PatchMePrivacy").WithSummary("Patch current user privacy settings");
+        route.MapDelete("/me", DeleteMe).WithName("Users_DeleteMe").WithSummary("Soft delete current user");
+        route.MapPost("/me/export", RequestExportMe).WithName("Users_RequestExportMe").WithSummary("Request data export for current user");
         return route;
     }
 
@@ -174,5 +177,23 @@ public static class UserRoutes
         return await RouteExecution.QueryMaybe(
             () => service.PatchMyPrivacyAsync(UserActorResolver.Resolve(principal), request, cancellationToken),
             "Privacy settings updated");
+    }
+
+    private static async Task<IResult> DeleteMe(
+        ClaimsPrincipal principal,
+        IUserService service,
+        CancellationToken cancellationToken)
+    {
+        var deleted = await service.DeleteMeAsync(UserActorResolver.Resolve(principal), cancellationToken);
+        return deleted ? Results.NoContent() : TypedResults.NotFound();
+    }
+
+    private static async Task<IResult> RequestExportMe(
+        ClaimsPrincipal principal,
+        IUserService service,
+        CancellationToken cancellationToken)
+    {
+        var queued = await service.RequestExportMeAsync(UserActorResolver.Resolve(principal), cancellationToken);
+        return queued ? Results.Accepted() : Results.NotFound();
     }
 }
